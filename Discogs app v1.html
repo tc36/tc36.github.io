@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Discogs Card + List Views</title>
+  <style>
+    /* ========== NIGHT MODE FULLSCREEN ========== */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      overflow: hidden; /* We do a full-screen Card or List */
+      user-select: none; /* no text selection while swiping */
+    }
+
+    /* ========== CARD STACK (ONE CARD AT A TIME) ========== */
+    #card-stack {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: block; /* visible by default */
+    }
+    .card {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+      cursor: pointer;
+      opacity: 1;
+    }
+
+    /* ========== SQUARE IMAGE AT TOP ========== */
+    .square-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      overflow: hidden;
+      background: #333;
+      flex: 0 0 auto;
+    }
+    .square-image img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ========== FOOTER (TITLE, ARTIST, FORMAT, TRACKLIST, BUTTON) ========== */
+    .card-footer {
+      position: relative; /* so we can absolutely-position the toggle button */
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    .card-title {
+      font-size: 5.4rem; /* ~10% smaller than 6rem */
+      font-weight: bold;
+      margin: 1rem 0 0.5rem;
+      text-align: center;
+      color: #fff;
+    }
+    .card-artist {
+      font-size: 3.6rem; /* ~10% smaller than 4rem */
+      margin: 0.25rem 0 0.5rem;
+      text-align: center;
+      color: #ccc;
+    }
+    .card-format {
+      font-size: 1.2rem; /* much smaller single-line text */
+      margin-bottom: 2rem;
+      text-align: center;
+      color: #aaa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-tracklist {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: left;
+      column-count: 2;
+      column-gap: 1rem;
+    }
+    .track-item {
+      margin: 0.2rem 0;
+      color: #bbb;
+      font-size: 1.65rem; /* ~15% bigger than 1.44rem */
+      break-inside: avoid;
+    }
+
+    /* "List View" button locked to the bottom-right of the card */
+    .view-toggle-btn {
+      position: absolute;
+      right: 1rem;
+      bottom: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1.2rem;
+      background: #444;
+      color: #fff;
+      border: 1px solid #666;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .view-toggle-btn:hover {
+      background: #555;
+    }
+
+    /* ========== LIST VIEW ========== */
+    #list-view {
+      display: none; /* hidden by default */
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #121212;
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 1rem;
+    }
+
+    /* Make each row about ~3x bigger than before */
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 1.5rem; /* bigger padding */
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+    .list-item:hover {
+      background: #1e1e1e;
+    }
+
+    /* Larger thumbnail ~3x bigger, e.g. 180px x 180px */
+    .list-thumb {
+      width: 180px;
+      height: 180px;
+      margin-right: 1rem;
+      overflow: hidden;
+      background: #333;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .list-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Bigger font for list lines */
+    .list-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .list-artist {
+      font-size: 2rem; /* bigger than 1.2rem */
+      color: #ccc;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80vw;
+    }
+    .list-album-format {
+      font-size: 1.6rem; /* bigger than 1rem */
+      color: #aaa;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 80vw;
+    }
+
+    /* ========== INFO OVERLAY ========== */
+    #info-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      z-index: 100;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      padding: 2rem 1rem;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #info-overlay.visible {
+      display: block;
+      opacity: 1;
+    }
+    #info-content h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+    #info-content h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #ccc;
+      font-size: 1.4rem;
+    }
+    .extra-label {
+      font-weight: bold;
+      margin-top: 1rem;
+      color: #ddd;
+    }
+    .extra-value {
+      margin-bottom: 0.5rem;
+      color: #ccc;
+    }
+
+    /* ========== LETTER MENU OVERLAY ========== */
+    #letter-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      z-index: 150;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    #letter-overlay.visible {
+      display: block;
+      opacity: 1;
+    }
+    #letter-grid {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      gap: 1rem;
+    }
+    .big-button {
+      background: none;
+      border: 4px solid #444;
+      border-radius: 6px;
+      color: #ccc;
+      font-size: 3rem;
+      width: 220px;
+      height: 100px;
+      cursor: pointer;
+    }
+    .big-button:hover {
+      color: #fff;
+      border-color: #fff;
+    }
+    .letters-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .letter-btn {
+      background: none;
+      border: 2px solid #444;
+      border-radius: 4px;
+      color: #ccc;
+      font-size: 2.4rem;
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+    }
+    .letter-btn:hover {
+      color: #fff;
+      border-color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<!-- CARD VIEW container -->
+<div id="card-stack"></div>
+
+<!-- LIST VIEW container -->
+<div id="list-view"></div>
+
+<!-- Info overlay (tap anywhere to close) -->
+<div id="info-overlay">
+  <div id="info-content"></div>
+</div>
+
+<!-- Letter menu overlay -->
+<div id="letter-overlay">
+  <div id="letter-grid">
+    <button class="big-button" id="allBtn">ALL</button>
+    <div class="letters-container" id="lettersContainer"></div>
+    <button class="big-button" id="randomBtn">RANDOM</button>
+  </div>
+</div>
+
+<script>
+  /***********************
+   * CONFIG & GLOBALS
+   ***********************/
+  const DISCOGS_TOKEN = "VNkatCCKeYpfYiFTEegtKYWWQaRzGMnuaySSMFqi";
+  const DISCOGS_USERNAME = "Taylors-Collection";
+  const PER_PAGE = 100;
+  const BASE_API_URL = "https://api.discogs.com/users/" + DISCOGS_USERNAME +
+                       "/collection/folders/0/releases?per_page=" + PER_PAGE;
+
+  let allReleases = [];
+  let displayedReleases = [];
+  let detailsCache = {};
+  let currentIndex = 0;
+
+  const cardStack = document.getElementById("card-stack");
+  const listView = document.getElementById("list-view");
+  const infoOverlay = document.getElementById("info-overlay");
+  const infoContent = document.getElementById("info-content");
+  const letterOverlay = document.getElementById("letter-overlay");
+
+  const allBtn = document.getElementById("allBtn");
+  const randomBtn = document.getElementById("randomBtn");
+  const lettersContainer = document.getElementById("lettersContainer");
+
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+
+  /***********************
+   * FETCH & SORT COLLECTION
+   ***********************/
+  async function fetchEntireCollection() {
+    let nextUrl = BASE_API_URL;
+    let combined = [];
+    while (nextUrl) {
+      let resp = await fetch(nextUrl, {
+        headers: {
+          "User-Agent": "CardListApp/1.0",
+          "Authorization": "Discogs token=" + DISCOGS_TOKEN
+        }
+      });
+      if (!resp.ok) throw new Error("Fetch error " + resp.status);
+      let data = await resp.json();
+      combined = combined.concat(data.releases || []);
+      if (data.pagination && data.pagination.urls && data.pagination.urls.next) {
+        nextUrl = data.pagination.urls.next;
+      } else {
+        nextUrl = null;
+      }
+    }
+    return combined;
+  }
+
+  function sortByArtistName(arr) {
+    return arr.sort((a, b) => {
+      let aName = (a.basic_information.artists[0]?.name || "").toLowerCase();
+      let bName = (b.basic_information.artists[0]?.name || "").toLowerCase();
+      return aName.localeCompare(bName);
+    });
+  }
+
+  /***********************
+   * BUILD LETTER OVERLAY UI
+   ***********************/
+  function buildLetterOverlay() {
+    allBtn.addEventListener("click", () => {
+      displayedReleases = allReleases.slice();
+      currentIndex = 0;
+      hideLetterOverlay();
+      renderCards();
+    });
+    randomBtn.addEventListener("click", () => {
+      pickRandomAlbum();
+    });
+    lettersContainer.innerHTML = "";
+
+    // '#' button
+    let symbolBtn = createLetterBtn("#", () => {
+      displayedReleases = allReleases.filter(item => {
+        let name = (item.basic_information.artists[0]?.name || "").toLowerCase();
+        let first = name.charAt(0);
+        return first < 'a' || first > 'z';
+      });
+      currentIndex = 0;
+      hideLetterOverlay();
+      renderCards();
+    });
+    lettersContainer.appendChild(symbolBtn);
+
+    // A-Z
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(letter => {
+      let btn = createLetterBtn(letter, () => {
+        let low = letter.toLowerCase();
+        displayedReleases = allReleases.filter(item => {
+          let nm = (item.basic_information.artists[0]?.name || "").toLowerCase();
+          return nm.startsWith(low);
+        });
+        currentIndex = 0;
+        hideLetterOverlay();
+        renderCards();
+      });
+      lettersContainer.appendChild(btn);
+    });
+  }
+
+  function createLetterBtn(text, onClick) {
+    let btn = document.createElement("button");
+    btn.className = "letter-btn";
+    btn.textContent = text;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function pickRandomAlbum() {
+    let randIndex = Math.floor(Math.random() * allReleases.length);
+    displayedReleases = allReleases.slice(); // restore entire set
+    currentIndex = randIndex;
+    hideLetterOverlay();
+    renderCards();
+  }
+
+  /***********************
+   * RENDER SINGLE CARD
+   ***********************/
+  function renderCards() {
+    hideListView();
+    cardStack.style.display = "block";
+    cardStack.innerHTML = "";
+
+    if (displayedReleases.length === 0) {
+      let msg = document.createElement("div");
+      msg.style.color = "#ccc";
+      msg.style.position = "absolute";
+      msg.style.top = "50%";
+      msg.style.left = "50%";
+      msg.style.transform = "translate(-50%, -50%)";
+      msg.textContent = "No records found.";
+      cardStack.appendChild(msg);
+      return;
+    }
+    if (currentIndex >= displayedReleases.length) currentIndex = displayedReleases.length - 1;
+    if (currentIndex < 0) currentIndex = 0;
+
+    let item = displayedReleases[currentIndex];
+    let card = createCardElement(item);
+    cardStack.appendChild(card);
+  }
+
+  function createCardElement(releaseItem) {
+    let info = releaseItem.basic_information;
+    let cardEl = document.createElement("div");
+    cardEl.className = "card";
+
+    // Square image
+    let squareDiv = document.createElement("div");
+    squareDiv.className = "square-image";
+    let img = document.createElement("img");
+    img.src = info.cover_image;
+    img.alt = info.title;
+    squareDiv.appendChild(img);
+
+    // Footer
+    let footer = document.createElement("div");
+    footer.className = "card-footer";
+
+    let titleEl = document.createElement("div");
+    titleEl.className = "card-title";
+    titleEl.textContent = info.title;
+
+    let artistEl = document.createElement("div");
+    artistEl.className = "card-artist";
+    let artistName = info.artists.map(a => a.name).join(", ");
+    artistEl.textContent = artistName;
+
+    // Format
+    let formatEl = document.createElement("div");
+    formatEl.className = "card-format";
+    let formatText = "";
+    if (info.formats && info.formats.length > 0) {
+      formatText = info.formats.map(f => {
+        if (f.descriptions && f.descriptions.length > 0) {
+          return f.descriptions.join(", ");
+        } else if (f.name) {
+          return f.name;
+        } else {
+          return "";
+        }
+      }).filter(txt => txt !== "").join(" / ");
+    }
+    formatEl.textContent = formatText;
+
+    // Tracklist
+    let tracklistEl = document.createElement("div");
+    tracklistEl.className = "card-tracklist";
+    fillTracklistIfNeeded(releaseItem, tracklistEl);
+
+    // "List View" button
+    let listBtn = document.createElement("button");
+    listBtn.textContent = "List View";
+    listBtn.className = "view-toggle-btn";
+    listBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation(); // so it doesn't trigger card tap
+      showListView();
+    });
+
+    footer.appendChild(titleEl);
+    footer.appendChild(artistEl);
+    footer.appendChild(formatEl);
+    footer.appendChild(tracklistEl);
+    footer.appendChild(listBtn);
+
+    cardEl.appendChild(squareDiv);
+    cardEl.appendChild(footer);
+
+    // On card tap => info overlay
+    cardEl.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      showInfoOverlay(releaseItem);
+    }, { passive: false });
+
+    addSwipeHandlers(cardEl);
+
+    return cardEl;
+  }
+
+  /***********************
+   * LIST VIEW
+   ***********************/
+  function showListView() {
+    cardStack.style.display = "none";
+    listView.style.display = "block";
+    buildListView();
+  }
+  function hideListView() {
+    listView.style.display = "none";
+  }
+
+  function buildListView() {
+    listView.innerHTML = "";
+    if (displayedReleases.length === 0) {
+      listView.innerHTML = "<p>No records found.</p>";
+      return;
+    }
+
+    // Build each row
+    displayedReleases.forEach((release, i) => {
+      let row = createListItem(release, i);
+      listView.appendChild(row);
+    });
+  }
+
+  function createListItem(releaseItem, index) {
+    let info = releaseItem.basic_information;
+
+    let row = document.createElement("div");
+    row.className = "list-item";
+
+    // Large thumbnail
+    let thumbDiv = document.createElement("div");
+    thumbDiv.className = "list-thumb";
+    let img = document.createElement("img");
+    img.src = info.cover_image;
+    img.alt = info.title;
+    thumbDiv.appendChild(img);
+
+    // text area
+    let textDiv = document.createElement("div");
+    textDiv.className = "list-info";
+
+    let artistName = info.artists.map(a => a.name).join(", ");
+    let artistDiv = document.createElement("div");
+    artistDiv.className = "list-artist";
+    artistDiv.textContent = artistName;
+
+    // album + format
+    let albumFmtDiv = document.createElement("div");
+    albumFmtDiv.className = "list-album-format";
+
+    let formatText = "";
+    if (info.formats && info.formats.length > 0) {
+      formatText = info.formats.map(f => {
+        if (f.descriptions && f.descriptions.length > 0) {
+          return f.descriptions.join(", ");
+        } else if (f.name) {
+          return f.name;
+        } else {
+          return "";
+        }
+      }).filter(txt => txt !== "").join(" / ");
+    }
+    albumFmtDiv.textContent = info.title + " — " + formatText;
+
+    textDiv.appendChild(artistDiv);
+    textDiv.appendChild(albumFmtDiv);
+
+    row.appendChild(thumbDiv);
+    row.appendChild(textDiv);
+
+    // Clicking => switch to that item in card view
+    row.addEventListener("click", () => {
+      currentIndex = index; 
+      renderCards(); 
+    });
+
+    return row;
+  }
+
+  /***********************
+   * FILL TRACKLIST (Used by Card View)
+   ***********************/
+  async function fillTracklistIfNeeded(releaseItem, trackContainer) {
+    let rid = releaseItem.basic_information.id;
+    if (detailsCache[rid]) {
+      fillTracklistSection(trackContainer, detailsCache[rid]);
+    } else {
+      let url = "https://api.discogs.com/releases/" + rid;
+      try {
+        let resp = await fetch(url, {
+          headers: {
+            "User-Agent": "CardListApp/1.0",
+            "Authorization": "Discogs token=" + DISCOGS_TOKEN
+          }
+        });
+        if (!resp.ok) throw new Error("Tracklist fetch error " + resp.status);
+        let data = await resp.json();
+        detailsCache[rid] = data;
+        fillTracklistSection(trackContainer, data);
+      } catch (err) {
+        console.error("Tracklist fetch error:", err);
+        trackContainer.innerHTML = "<p style='color:#bbb;'>Tracklist unavailable.</p>";
+      }
+    }
+  }
+
+  function fillTracklistSection(trackContainer, releaseData) {
+    trackContainer.innerHTML = "";
+    if (releaseData.tracklist && releaseData.tracklist.length > 0) {
+      releaseData.tracklist.forEach(t => {
+        let line = document.createElement("div");
+        line.className = "track-item";
+        let txt = t.position + " - " + t.title;
+        if (t.duration) txt += " (" + t.duration + ")";
+        line.textContent = txt;
+        trackContainer.appendChild(line);
+      });
+    } else {
+      trackContainer.innerHTML = "<p style='color:#bbb;'>No tracklist found.</p>";
+    }
+  }
+
+  /***********************
+   * SWIPE LOGIC (One Card Display)
+   ***********************/
+  let userIsDragging = false;
+  let startX = 0, startY = 0;
+  let currentTranslateX = 0, currentTranslateY = 0;
+  const HORIZONTAL_THRESHOLD = 80;
+  const VERTICAL_THRESHOLD = 80;
+
+  function addSwipeHandlers(cardEl) {
+    cardEl.addEventListener("touchstart", onTouchStart, { passive: false });
+    cardEl.addEventListener("touchmove", onTouchMove, { passive: false });
+    cardEl.addEventListener("touchend", onTouchEnd, { passive: false });
+  
+    function onTouchStart(e) {
+      if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
+      let touch = e.changedTouches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      userIsDragging = false;
+      currentTranslateX = 0;
+      currentTranslateY = 0;
+      cardEl.style.transition = "none";
+    }
+  
+    function onTouchMove(e) {
+      if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
+      let touch = e.changedTouches[0];
+      let diffX = touch.clientX - startX;
+      let diffY = touch.clientY - startY;
+      let absX = Math.abs(diffX);
+      let absY = Math.abs(diffY);
+
+      if (absX > 10 || absY > 10) {
+        userIsDragging = true;
+      }
+      if (absY > absX) {
+        // vertical swipe
+        currentTranslateY = diffY;
+        cardEl.style.transform = `translateY(${diffY * 0.1}px)`;
+        e.preventDefault();
+      } else {
+        // horizontal: fade from 1 -> 0.8
+        currentTranslateX = diffX;
+        let ratio = Math.min(absX / HORIZONTAL_THRESHOLD, 1);
+        let newOpacity = 1 - 0.2 * ratio;
+        cardEl.style.opacity = newOpacity;
+        cardEl.style.transform = `translateX(${diffX}px)`;
+        e.preventDefault();
+      }
+    }
+  
+    function onTouchEnd(e) {
+      if (!userIsDragging) {
+        resetCardStyle(cardEl);
+        return;
+      }
+      let absX = Math.abs(currentTranslateX);
+      let absY = Math.abs(currentTranslateY);
+
+      if (absY > absX) {
+        // vertical
+        if (currentTranslateY > VERTICAL_THRESHOLD) {
+          showLetterOverlay();
+        } else if (currentTranslateY < -VERTICAL_THRESHOLD) {
+          if (letterOverlay.classList.contains("visible")) {
+            hideLetterOverlay();
+          } else {
+            resetCardStyle(cardEl);
+          }
+        } else {
+          resetCardStyle(cardEl);
+        }
+      } else {
+        // horizontal
+        if (absX > HORIZONTAL_THRESHOLD) {
+          // left => next (currentTranslateX < 0)
+          // right => prev (currentTranslateX > 0)
+          if (currentTranslateX < 0) currentIndex++;
+          else currentIndex--;
+        }
+        resetCardStyle(cardEl);
+        renderCards();
+      }
+    }
+
+    function resetCardStyle(el) {
+      el.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
+      el.style.transform = "translateX(0) translateY(0)";
+      el.style.opacity = "1";
+    }
+  }
+
+  /***********************
+   * LETTER OVERLAY SWIPE UP TO HIDE
+   ***********************/
+  let overlayStartY = 0, overlayDiffY = 0;
+  letterOverlay.addEventListener("touchstart", overlayTouchStart, { passive: false });
+  letterOverlay.addEventListener("touchmove", overlayTouchMove, { passive: false });
+  letterOverlay.addEventListener("touchend", overlayTouchEnd, { passive: false });
+
+  function overlayTouchStart(e) {
+    let t = e.changedTouches[0];
+    overlayStartY = t.clientY;
+    overlayDiffY = 0;
+  }
+  function overlayTouchMove(e) {
+    let t = e.changedTouches[0];
+    overlayDiffY = t.clientY - overlayStartY;
+    e.preventDefault();
+  }
+  function overlayTouchEnd(e) {
+    if (overlayDiffY < -VERTICAL_THRESHOLD) {
+      hideLetterOverlay();
+    }
+  }
+
+  function showLetterOverlay() {
+    letterOverlay.classList.add("visible");
+  }
+  function hideLetterOverlay() {
+    letterOverlay.classList.remove("visible");
+    setTimeout(() => {
+      if (!letterOverlay.classList.contains("visible")) {
+        letterOverlay.style.display = "none";
+        letterOverlay.offsetHeight;
+        letterOverlay.style.display = "";
+      }
+    }, 300);
+  }
+
+  /***********************
+   * INFO OVERLAY (TAP TO CLOSE)
+   ***********************/
+  infoOverlay.addEventListener("click", closeInfoOverlay);
+
+  function showInfoOverlay(releaseItem) {
+    let rid = releaseItem.basic_information.id;
+    if (detailsCache[rid]) {
+      fillInfoOverlay(releaseItem, detailsCache[rid]);
+      openInfoOverlay();
+    } else {
+      let url = "https://api.discogs.com/releases/" + rid;
+      fetch(url, {
+        headers: {
+          "User-Agent": "CardListApp/1.0",
+          "Authorization": "Discogs token=" + DISCOGS_TOKEN
+        }
+      })
+      .then(resp => {
+        if (!resp.ok) throw new Error("Overlay fetch error " + resp.status);
+        return resp.json();
+      })
+      .then(data => {
+        detailsCache[rid] = data;
+        fillInfoOverlay(releaseItem, data);
+        openInfoOverlay();
+      })
+      .catch(err => {
+        console.error("Overlay fetch error:", err);
+        infoContent.innerHTML = "<p>Error loading details</p>";
+        openInfoOverlay();
+      });
+    }
+  }
+
+  function fillInfoOverlay(releaseItem, releaseData) {
+    infoContent.innerHTML = "";
+    let titleEl = document.createElement("h2");
+    titleEl.textContent = releaseItem.basic_information.title;
+    infoContent.appendChild(titleEl);
+
+    let artistStr = releaseItem.basic_information.artists.map(a => a.name).join(", ");
+    let artistEl = document.createElement("h3");
+    artistEl.textContent = artistStr;
+    artistEl.style.color = "#ccc";
+    infoContent.appendChild(artistEl);
+
+    if (releaseData.labels) {
+      let labelStr = releaseData.labels.map(l => l.name).join(", ");
+      if (labelStr) addInfoRow("Label:", labelStr);
+    }
+    if (releaseData.year) addInfoRow("Year:", String(releaseData.year));
+    if (releaseData.country) addInfoRow("Country:", releaseData.country);
+    if (releaseData.genres) addInfoRow("Genre(s):", releaseData.genres.join(", "));
+    if (releaseData.styles) addInfoRow("Style(s):", releaseData.styles.join(", "));
+    if (releaseData.notes) addInfoRow("Notes:", releaseData.notes);
+  }
+
+  function addInfoRow(label, value) {
+    let lbl = document.createElement("div");
+    lbl.className = "extra-label";
+    lbl.textContent = label;
+    let val = document.createElement("div");
+    val.className = "extra-value";
+    val.textContent = value;
+    infoContent.appendChild(lbl);
+    infoContent.appendChild(val);
+  }
+
+  function openInfoOverlay() {
+    infoOverlay.classList.add("visible");
+  }
+  function closeInfoOverlay() {
+    infoOverlay.classList.remove("visible");
+    setTimeout(() => {
+      if (!infoOverlay.classList.contains("visible")) {
+        infoOverlay.style.display = "none";
+        infoOverlay.offsetHeight;
+        infoOverlay.style.display = "";
+      }
+    }, 300);
+  }
+
+  /***********************
+   * INIT
+   ***********************/
+  (async function init() {
+    try {
+      let data = await fetchEntireCollection();
+      data = sortByArtistName(data);
+      allReleases = data;
+      displayedReleases = allReleases.slice();
+      buildLetterOverlay();
+      renderCards(); // Show the first card by default
+    } catch (err) {
+      console.error("Init error:", err);
+      let msg = document.createElement("div");
+      msg.style.color = "#ccc";
+      msg.textContent = "Error loading. Check console.";
+      cardStack.appendChild(msg);
+    }
+  })();
+</script>
+</body>
+</html>
