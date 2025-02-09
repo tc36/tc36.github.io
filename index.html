@@ -2,47 +2,54 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Discogs Card + List (No Search) - Updated</title>
+  <!-- Prevent it from appearing huge on mobile, 
+       keep user-scalable=no to disallow pinch-zoom. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <title>Discogs Master (Partial Rescales)</title>
+
   <style>
-    /* ========== NIGHT MODE FULLSCREEN ========== */
+    /* 
+       BASE: Previously everything was half (50%) from the "original." 
+       We keep that as the foundation (7px base font).
+       Then we'll selectively bump certain elements to 85%, 90%, 100%, or 80% as requested.
+    */
+
     html, body {
-      margin: 0;
+      margin: 0; 
       padding: 0;
-      width: 100%;
+      width: 100%; 
       height: 100%;
       background: #121212;
       color: #ffffff;
       font-family: Arial, sans-serif;
-      overflow: hidden; /* we do a full-screen Card or List */
-      user-select: none; /* no text selection while swiping */
+      /* The “overall half scale” base from prior code: 7px */
+      font-size: 7px; 
+      overflow: hidden;
+      user-select: none;
     }
 
-    /* ========== CARD STACK (ONE CARD AT A TIME) ========== */
+    /* ========== CARD STACK ========== */
     #card-stack {
-      position: absolute;
+      position: fixed;
       top: 0; left: 0;
-      width: 100%; 
-      height: 100%;
-      display: block; /* shown by default */
-      /* We'll add vertical swipe logic to #card-stack itself 
-         so we can open letter overlay even if 0 cards. */
+      width: 100%; height: 100%;
     }
     .card {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; 
-      height: 100%;
+      width: 100%; height: 100%;
       background: #1e1e1e;
       border: 1px solid #333;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      transition: transform 0.2s ease-out, opacity 0.2s ease-out; /* gentle fade on swipe */
+      transition: transform 0.2s ease-out, opacity 0.2s ease-out;
       cursor: pointer;
       opacity: 1;
     }
 
-    /* ========== SQUARE IMAGE ========== */
+    /* SQUARE IMAGE: half-scale version is fine */
     .square-image {
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -54,67 +61,74 @@
     .square-image img {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; 
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
     }
 
-    /* ========== FOOTER (TITLE, ARTIST, FORMAT, TRACKLIST, "LIST VIEW" BTN) ========== */
+    /* ========== CARD FOOTER ========== */
+    /* Foundation was 0.5rem padding, keep that. */
     .card-footer {
       position: relative;
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1rem;
+      padding: 0.5rem;
       box-sizing: border-box;
       overflow-y: auto;
     }
     .card-title {
-      font-size: 5.4rem; /* ~10% smaller than 6rem */
+      font-size: 3.5rem; /* was 1.2rem in the half code => now 85% of original */
       font-weight: bold;
-      margin: 1rem 0 0.5rem;
+      margin: 0.4rem 0 0.2rem;
       text-align: center;
       color: #fff;
     }
     .card-artist {
-      font-size: 3.6rem; /* ~10% smaller than 4rem */
-      margin: 0.25rem 0 0.5rem;
+      font-size: 3.0rem; /* was 0.9 => now 1.53 (85% of 1.8) */
+      margin: 0.2rem 0 0.8rem;
       text-align: center;
       color: #ccc;
     }
     .card-format {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
+      font-size: 1.0rem; /* was 0.5 => 85% of 1 => 0.85 */
+      font-style: italic;
+      margin-bottom: 1.0rem;
       text-align: center;
       color: #aaa;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .card-tracklist {
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      text-align: left;
-      column-count: 2;
-      column-gap: 1rem;
-    }
+    /* track items => from 0.6 => 1.02 */
     .track-item {
-      margin: 0.2rem 0;
+      margin: 0.1rem 0;
       color: #bbb;
-      font-size: 1.65rem; /* ~15% bigger than 1.44rem */
+      font-size: 1.8rem; 
       break-inside: avoid;
     }
+    .card-tracklist {
+      width: 100%;
+      max-width: 365px;
+      margin: 0 0.5rem;
+      text-align: left;
+      column-count: 2;
+      column-gap: 0.5rem;
+    }
 
-    /* Larger "List View" button: ~30% bigger => e.g. font-size from 1.5rem to ~2rem, plus bigger padding. */
+    /* "List View" button => from 50% => 100% 
+       The half code had:
+         font-size: 0.6rem, padding: 0.4rem 0.7rem
+       We revert to the half-coded “full” version => let's do 1.2rem, 0.8rem 1.4rem
+       so it matches the old "100% scale" from half. 
+    */
     .view-toggle-btn {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      bottom: 1rem;
-      padding: 1rem 2rem; /* bigger padding */
-      font-size: 2rem;    /* bigger font */
+      bottom: 1rem; /* was 0.5 => revert to 1rem */
+      font-size: 2.0rem; 
+      padding: 0.8rem 1.4rem; 
       background: #444;
       color: #fff;
       border: 1px solid #666;
@@ -130,29 +144,77 @@
       display: none;
       position: absolute;
       top: 0; left: 0;
-      width: 100%; 
-      height: 100%;
+      width: 100%; height: 100%;
       background: #121212;
+      overflow: hidden;
+    }
+
+    /* 
+       "Search bar from 50 => 100%" => 
+       revert top bar from 1.5rem => 3rem
+       revert #list-search height from 1rem => 2rem
+    */
+    #list-top-bar {
+      position: relative;
+      width: 100%;
+      height: 5rem; /* was 1.5 => now back to 3 */
+      background: ##121212;
+      display: flex;
+      align-items: center;
+      padding: 0rem 5rem; /* was 0 0.5 => revert to 1rem */
+      box-sizing: border-box;
+    }
+    /* The input is 16px so iOS won't zoom, no change needed there. 
+       But revert the half-coded height from 1rem => 2rem.
+    */
+    #list-search {
+      flex: 1 1 auto;
+      height: 4rem; 
+      background: #333;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 16px; /* keep for iOS no-zoom */
+      outline: none;
+      padding: 0rem 5rem;
+    }
+    #list-search::placeholder {
+      color: #888;
+    }
+
+    /* 
+       "Scale each item row from 50 => 80%" 
+       Original row had 1.5rem => half => 0.75 => now 80% => 1.2 
+       Original thumb 160 => half => 80 => now 80% => 128
+       Original .list-artist => 1.2 => half => 0.6 => now 0.96
+       Original .list-album-format => 1 => half => 0.5 => now 0.8 
+    */
+    #list-content {
+      position: absolute;
+      top: 5rem; 
+      left: 0;
+      right: 60px; 
+      bottom: 0;
       overflow-y: auto;
       box-sizing: border-box;
       padding: 1rem;
     }
-    /* Large rows (thumbnail ~180px, big text) */
     .list-item {
       display: flex;
       align-items: center;
-      padding: 1.5rem;
+      /* from 0.75 => 1.2 */
+      padding: 1.2rem; 
       border-bottom: 1px solid #333;
       cursor: pointer;
     }
     .list-item:hover {
       background: #1e1e1e;
     }
+    /* from 80 => 128 */
     .list-thumb {
-      width: 180px;
-      height: 180px;
-      margin-right: 1rem;
-      overflow: hidden;
+      width: 128px;
+      height: 128px;
+      margin-right: 1.2rem; 
       background: #333;
       flex-shrink: 0;
       position: relative;
@@ -167,18 +229,20 @@
       flex-direction: column;
       overflow: hidden;
     }
+    /* from 0.6 => 0.96 */
     .list-artist {
-      font-size: 2rem;
+      font-size: 2.2rem; 
       color: #ccc;
       line-height: 1.2;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.3rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 80vw;
     }
+    /* from 0.5 => 0.8 */
     .list-album-format {
-      font-size: 1.6rem;
+      font-size: 1.7rem; 
       color: #aaa;
       line-height: 1.2;
       white-space: nowrap;
@@ -187,18 +251,67 @@
       max-width: 80vw;
     }
 
-    /* ========== INFO OVERLAY ========== */
+    /* "Keep the button filter exactly the size it is" => no changes to .letter-bar-btn. 
+       So we keep the half-coded version: 
+       width: 50px => 25, etc. We do not revert. We'll just keep it as is.
+       Actually from our half code, we had 30 wide bar => 25 w/h? 
+       We'll just keep it. 
+       (No changes => see instructions.)
+       So we do NOT change .letter-bar-btn below 
+       because user said "keep exactly the size it is."
+    */
+    #list-letter-bar {
+      position: absolute;
+      top: 5rem;
+      right: 0;
+      width: 33px; 
+      bottom: 0;
+      background: #121212;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0.25rem 0; 
+      box-sizing: border-box;
+    }
+    .letter-bar-btn {
+      background: none;
+      border: 1px solid #444;
+      border-radius: 2px;
+      color: #ccc;
+      font-size: 1.3rem;
+      width: 25px;
+      height: 25px;
+      cursor: pointer;
+      text-align: center;
+      line-height: 23px;
+      margin: 0.125rem 0;
+    }
+    .letter-bar-btn:hover {
+      color: #fff;
+      border-color: #fff;
+    }
+
+    /* ========== INFO OVERLAY (CARD) ========== */
+    /* "Scale the additional info from 50 => 100%" => revert to the original half-coded "full." 
+       Let's do double of the half: if we had 0.5rem => 1rem, etc. 
+       So, was #info-content * => 0.5rem => now 1rem, 
+          h2 => 0.7 => 1.4, 
+          h3 => 0.6 => 1.2, 
+          margin => double. 
+    */
     #info-overlay {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%; 
+      height: 100%;
       background: rgba(0,0,0,0.8);
       color: #fff;
       z-index: 100;
       display: none;
       opacity: 0;
       transition: opacity 0.3s ease;
-      padding: 2rem 1rem;
+      padding: 4rem 4rem; 
       box-sizing: border-box;
       overflow-y: auto;
     }
@@ -206,44 +319,52 @@
       display: block;
       opacity: 1;
     }
-    /* Make everything in #info-content consistent in size */
+    /* revert from 0.5 => 1.0 */
     #info-content * {
-      font-size: 1.2rem; /* unify for consistent overlays */
+      font-size: 2.0rem;
       line-height: 1.4;
     }
+    /* from 0.7 => 1.4 */
     #info-content h2 {
       margin-top: 0;
       margin-bottom: 0.5rem;
-      font-size: 2rem; /* a bit bigger for the album title */
+      font-size: 4rem;
     }
+    /* from 0.6 => 1.2 */
     #info-content h3 {
       margin-top: 0;
-      margin-bottom: 1rem;
+      margin-bottom: 4rem;
       color: #ccc;
-      font-size: 1.4rem; /* subheading for artist */
+      font-size: 3rem;
     }
+    /* margin-top from 0.4 => 0.8, margin-bottom from 0.2 => 0.4 */
     .extra-label {
       font-weight: bold;
-      margin-top: 1rem;
+      margin-top: 0.8rem;
       color: #ddd;
     }
     .extra-value {
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
       color: #ccc;
     }
 
-    /* ========== LETTER MENU OVERLAY (down-swipe to open, up-swipe to hide) ========== */
+    /* ========== LETTER MENU OVERLAY (CARD) ========== */
+    /* from 50 => 90%. The original was: big-button => 1.4rem => half => 0.7 => now 1.26 (which is 0.9 * 1.4)
+       widths from 70 => 126, heights from 30 => 54 
+       letter-btn => from 0.7rem => 1.26rem, from 30 => 54 
+    */
     #letter-overlay {
       position: absolute;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%; 
+      height: 100%;
       background: rgba(0,0,0,0.8);
       color: #fff;
       z-index: 150;
       display: none;
       opacity: 0;
       transition: opacity 0.3s ease;
-      padding: 1rem;
+      padding: 0.5rem;
       box-sizing: border-box;
     }
     #letter-overlay.visible {
@@ -256,17 +377,20 @@
       justify-content: center;
       align-items: center;
       height: 100%;
-      gap: 1rem;
+      gap: 0.5rem;
     }
+    /* big-button from 0.7 => 1.26 => width 70 => 126 => height 30 => 54 => line-height ~52? */
     .big-button {
       background: none;
-      border: 4px solid #444;
-      border-radius: 6px;
+      border: 2px solid #444; 
+      border-radius: 3px; 
       color: #ccc;
-      font-size: 3rem;
-      width: 220px;
-      height: 100px;
+      font-size: 3.5rem; 
+      width: 150px; 
+      height: 54px;
       cursor: pointer;
+      text-align: center;
+      line-height: 52px; 
     }
     .big-button:hover {
       color: #fff;
@@ -276,16 +400,17 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 0.3rem;
     }
+    /* letter-btn => from 0.7 => 1.26 => from 30 => 54 */
     .letter-btn {
       background: none;
       border: 2px solid #444;
-      border-radius: 4px;
+      border-radius: 2px;
       color: #ccc;
-      font-size: 2.4rem;
-      width: 80px;
-      height: 80px;
+      font-size: 2rem;
+      width: 54px;
+      height: 54px;
       cursor: pointer;
     }
     .letter-btn:hover {
@@ -296,18 +421,20 @@
 </head>
 <body>
 
-<!-- CARD VIEW container (shown initially) -->
 <div id="card-stack"></div>
 
-<!-- LIST VIEW container (hidden initially) -->
-<div id="list-view"></div>
+<div id="list-view" style="display:none;">
+  <div id="list-top-bar">
+    <input type="text" id="list-search" placeholder="Search (artist, album, format, genre)..." />
+  </div>
+  <div id="list-content"></div>
+  <div id="list-letter-bar"></div>
+</div>
 
-<!-- Info overlay (tap to close) -->
 <div id="info-overlay">
   <div id="info-content"></div>
 </div>
 
-<!-- Letter overlay (down-swipe to show, up-swipe to hide) -->
 <div id="letter-overlay">
   <div id="letter-grid">
     <button class="big-button" id="allBtn">ALL</button>
@@ -317,6 +444,72 @@
 </div>
 
 <script>
+/***********************
+ * SPOTIFY
+ ***********************/
+// ----- SPOTIFY CONFIGURATION -----
+// Replace these with your actual Spotify API credentials.
+const SPOTIFY_CLIENT_ID = "a16e10b537b148c4bb702342e1e9e8ab";
+const SPOTIFY_CLIENT_SECRET = "31330552b24d457b8293843bace31653";
+
+// We’ll cache the token once we get it.
+let spotifyAccessToken = null;
+
+// Get a Spotify access token using the Client Credentials Flow.
+async function getSpotifyAccessToken() {
+  if (spotifyAccessToken) return spotifyAccessToken;
+  const result = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": "Basic " + btoa(SPOTIFY_CLIENT_ID + ":" + SPOTIFY_CLIENT_SECRET)
+    },
+    body: "grant_type=client_credentials"
+  });
+  const data = await result.json();
+  spotifyAccessToken = data.access_token;
+  return spotifyAccessToken;
+}
+
+// Search for an album on Spotify using the artist and album name.
+async function searchSpotifyAlbum(artist, album) {
+  const token = await getSpotifyAccessToken();
+  const query = encodeURIComponent(artist + " " + album);
+  const url = `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`;
+  const response = await fetch(url, {
+    headers: { "Authorization": "Bearer " + token }
+  });
+  const data = await response.json();
+  if (data.albums && data.albums.items && data.albums.items.length > 0) {
+    return data.albums.items[0].id; // Return the album ID
+  }
+  return null;
+}
+
+// Embed the Spotify player into a specified container.
+// This function creates an iframe that fills the container's width.
+async function embedSpotifyPlayerInContainer(container, artist, album) {
+  try {
+    const albumId = await searchSpotifyAlbum(artist, album);
+    if (albumId) {
+      const iframe = document.createElement("iframe");
+      iframe.style.width = "100%";         // Full width of container
+      iframe.style.height = "100px";         // Adjust height as needed
+      iframe.src = `https://open.spotify.com/embed/album/${albumId}`;
+      iframe.frameBorder = "0";
+      iframe.allow = "encrypted-media";
+      container.appendChild(iframe);
+    } else {
+      const msg = document.createElement("div");
+      msg.textContent = "Spotify album not found.";
+      msg.style.color = "#ccc";
+      container.appendChild(msg);
+    }
+  } catch (error) {
+    console.error("Error embedding Spotify player:", error);
+  }
+}
+
 /***********************
  * CONFIG & GLOBALS
  ***********************/
@@ -329,11 +522,18 @@ const BASE_API_URL = "https://api.discogs.com/users/" + DISCOGS_USERNAME +
 let allReleases = [];
 let displayedReleases = [];
 let detailsCache = {};
+
 let currentIndex = 0;
-let currentView = "card"; // 'card' or 'list'
+let currentView = "card";
+
+let listSearchText = "";
 
 const cardStack = document.getElementById("card-stack");
 const listView = document.getElementById("list-view");
+const listSearch = document.getElementById("list-search");
+const listContent = document.getElementById("list-content");
+const listLetterBar = document.getElementById("list-letter-bar");
+
 const infoOverlay = document.getElementById("info-overlay");
 const infoContent = document.getElementById("info-content");
 const letterOverlay = document.getElementById("letter-overlay");
@@ -342,26 +542,99 @@ const allBtn = document.getElementById("allBtn");
 const randomBtn = document.getElementById("randomBtn");
 const lettersContainer = document.getElementById("lettersContainer");
 
-const screenWidth = window.innerWidth;
-const screenHeight = window.innerHeight;
+/* We'll guess each list row is 200px originally => half => 100, 
+   user wants 80% => 160 => but we ended up at 128 for thumbnail, 
+   1.2rem padding, so let's keep a single reference. We'll do 100 for offset. */
+const LIST_ITEM_HEIGHT = 100;
+
+const HORIZONTAL_THRESHOLD = 80;
+const VERTICAL_THRESHOLD = 80;
+
+function scrubArtistName(name) {
+  return name.replace(/\(\d+\)/g, "").trim();
+}
+
+function scrubTrackTitle(title) {
+  // Remove trailing whitespace first.
+  title = title.trim();
+  
+  // Find the position of the last '(' in the title.
+  const lastParenIndex = title.lastIndexOf('(');
+  
+  // If no parenthesis is found, return the title as-is.
+  if (lastParenIndex === -1) {
+    return title;
+  }
+  
+  // Extract the substring starting at the last '('.
+  const candidate = title.substring(lastParenIndex);
+  
+  // Use a regex to check if the candidate is a time format.
+  // This regex matches an opening parenthesis, one or two digits,
+  // a colon, exactly two digits, and a closing parenthesis.
+  const timePattern = /^\(\d{1,2}:\d{2}\)$/;
+  
+  if (timePattern.test(candidate)) {
+    // If it matches, remove that part of the title.
+    return title.substring(0, lastParenIndex).trim();
+  }
+  
+  // Otherwise, return the title unmodified.
+  return title;
+}
 
 /***********************
- * FETCH & SORT ENTIRE COLLECTION
+ * INIT
  ***********************/
-async function fetchEntireCollection() {
-  let nextUrl = BASE_API_URL;
-  let combined = [];
-  while (nextUrl) {
-    let resp = await fetch(nextUrl, {
-      headers: {
-        "User-Agent": "CardListNoSearchApp/1.0",
-        "Authorization": "Discogs token=" + DISCOGS_TOKEN
+(async function init(){
+  try {
+    let data = await fetchEntireCollection();
+    data.forEach(release => {
+      if (release.basic_information && release.basic_information.artists) {
+        release.basic_information.artists = release.basic_information.artists.map(artist => {
+          return { ...artist, name: scrubArtistName(artist.name) };
+        });
       }
     });
-    if (!resp.ok) throw new Error("Fetch error " + resp.status);
+    data = sortByArtistName(data);
+    allReleases = data;
+    displayedReleases = allReleases.slice();
+
+    buildCardLetterOverlay();
+    buildListLetterBar();
+    listSearch.addEventListener("input", onListSearch);
+
+    renderCards();
+  } catch(err){
+    console.error("Init error:", err);
+    let msg= document.createElement("div");
+    msg.style.color="#ccc";
+    msg.style.position="absolute";
+    msg.style.top="50%";
+    msg.style.left="50%";
+    msg.style.transform="translate(-50%,-50%)";
+    msg.textContent="Error loading. Check console.";
+    cardStack.appendChild(msg);
+  }
+})();
+
+/***********************
+ * FETCH & SORT
+ ***********************/
+async function fetchEntireCollection(){
+  let nextUrl = BASE_API_URL;
+  let combined = [];
+  while(nextUrl){
+    let resp = await fetch(nextUrl,{
+      headers:{
+        "User-Agent":"DiscogsHalfScalePartialAdjust/1.0",
+        "Authorization":"Discogs token="+ DISCOGS_TOKEN
+      }
+    });
+    if(!resp.ok) throw new Error("Fetch error "+resp.status);
     let data = await resp.json();
-    combined = combined.concat(data.releases || []);
-    if (data.pagination && data.pagination.urls && data.pagination.urls.next) {
+    combined = combined.concat(data.releases||[]);
+    if(data.pagination && data.pagination.urls && data.pagination.urls.next){
       nextUrl = data.pagination.urls.next;
     } else {
       nextUrl = null;
@@ -369,571 +642,647 @@ async function fetchEntireCollection() {
   }
   return combined;
 }
-
-function sortByArtistName(arr) {
-  return arr.sort((a, b) => {
-    let aName = (a.basic_information.artists[0]?.name || "").toLowerCase();
-    let bName = (b.basic_information.artists[0]?.name || "").toLowerCase();
-    return aName.localeCompare(bName);
+function sortByArtistName(arr){
+  return arr.sort((a,b)=>{
+    let an=(a.basic_information.artists[0]?.name||"").toLowerCase();
+    let bn=(b.basic_information.artists[0]?.name||"").toLowerCase();
+    return an.localeCompare(bn);
   });
 }
 
 /***********************
- * LETTER OVERLAY (ALL, #, A-Z, RANDOM)
+ * CARD LETTER OVERLAY
  ***********************/
-function buildLetterOverlay() {
-  // "ALL" button
-  allBtn.addEventListener("click", () => {
-    displayedReleases = allReleases.slice();
-    currentIndex = 0;
+function buildCardLetterOverlay(){
+  allBtn.addEventListener("click",()=>{
+    displayedReleases= allReleases.slice();
+    currentIndex=0;
     hideLetterOverlay();
-    if (currentView === "card") renderCards(); else buildListView();
+    renderCards();
   });
-  // "RANDOM" button
-  randomBtn.addEventListener("click", () => {
-    pickRandomAlbum();
+  randomBtn.addEventListener("click",()=>{
+    let randIdx= Math.floor(Math.random()* allReleases.length);
+    displayedReleases= allReleases.slice();
+    currentIndex= randIdx;
+    hideLetterOverlay();
+    renderCards();
   });
-  lettersContainer.innerHTML = "";
+  lettersContainer.innerHTML="";
 
-  // "#" => symbol/digit
-  let symbolBtn = createLetterBtn("#", () => {
-    displayedReleases = allReleases.filter(item => {
-      let nm = (item.basic_information.artists[0]?.name || "").toLowerCase();
-      let first = nm.charAt(0);
-      return first < 'a' || first > 'z';
+  let symBtn= createCardLetterBtn("#",()=>{
+    let idx= allReleases.findIndex(r=>{
+      let nm=(r.basic_information.artists[0]?.name||"").toLowerCase();
+      let first=nm.charAt(0);
+      return first<'a'|| first>'z';
     });
-    currentIndex = 0;
+    if(idx>=0){
+      displayedReleases= allReleases.slice();
+      currentIndex= idx;
+    }
     hideLetterOverlay();
-    if (currentView === "card") renderCards(); else buildListView();
+    renderCards();
   });
-  lettersContainer.appendChild(symbolBtn);
+  lettersContainer.appendChild(symBtn);
 
-  // A-Z
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(letter => {
-    let btn = createLetterBtn(letter, () => {
-      let low = letter.toLowerCase();
-      displayedReleases = allReleases.filter(item => {
-        let nm = (item.basic_information.artists[0]?.name || "").toLowerCase();
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(letter=>{
+    let btn= createCardLetterBtn(letter,()=>{
+      let low= letter.toLowerCase();
+      let idx= allReleases.findIndex(r=>{
+        let nm=(r.basic_information.artists[0]?.name||"").toLowerCase();
         return nm.startsWith(low);
       });
-      currentIndex = 0;
+      if(idx>=0){
+        displayedReleases= allReleases.slice();
+        currentIndex= idx;
+      }
       hideLetterOverlay();
-      if (currentView === "card") renderCards(); else buildListView();
+      renderCards();
     });
     lettersContainer.appendChild(btn);
   });
-}
 
-function createLetterBtn(text, onClick) {
-  let btn = document.createElement("button");
-  btn.className = "letter-btn";
-  btn.textContent = text;
-  btn.addEventListener("click", onClick);
-  return btn;
+  letterOverlay.addEventListener("touchstart", overlayTouchStart,{passive:false});
+  letterOverlay.addEventListener("touchmove", overlayTouchMove,{passive:false});
+  letterOverlay.addEventListener("touchend", overlayTouchEnd,{passive:false});
 }
-
-function pickRandomAlbum() {
-  let randIndex = Math.floor(Math.random() * allReleases.length);
-  displayedReleases = allReleases.slice();
-  currentIndex = randIndex;
-  hideLetterOverlay();
-  if (currentView === "card") renderCards(); else buildListView();
+function createCardLetterBtn(txt, onClick){
+  let b= document.createElement("button");
+  b.className="letter-btn";
+  b.textContent= txt;
+  b.addEventListener("click", onClick);
+  return b;
+}
+function showLetterOverlay(){
+  letterOverlay.classList.add("visible");
+}
+function hideLetterOverlay(){
+  letterOverlay.classList.remove("visible");
+  setTimeout(()=>{
+    if(!letterOverlay.classList.contains("visible")){
+      letterOverlay.style.display="none";
+      letterOverlay.offsetHeight;
+      letterOverlay.style.display="";
+    }
+  },300);
+}
+let overlayStartY=0, overlayDiffY=0, overlayDragging=false;
+function overlayTouchStart(e){
+  let t=e.changedTouches[0];
+  overlayStartY= t.clientY;
+  overlayDiffY=0;
+  overlayDragging=false;
+}
+function overlayTouchMove(e){
+  let t=e.changedTouches[0];
+  overlayDiffY= t.clientY- overlayStartY;
+  if(Math.abs(overlayDiffY)>10) overlayDragging=true;
+  e.preventDefault();
+}
+function overlayTouchEnd(e){
+  if(!overlayDragging) return;
+  if(overlayDiffY< -VERTICAL_THRESHOLD){
+    hideLetterOverlay();
+  }
 }
 
 /***********************
- * RENDER CARDS
+ * LIST VIEW LETTER BAR => jump => center
  ***********************/
-function renderCards() {
-  currentView = "card";
-  hideListView();
-  cardStack.style.display = "block";
-  cardStack.innerHTML = "";
+// NEW PLUG‐AND‐PLAY SNIPPET FOR LIST VIEW LETTER BAR JUMP
 
-  if (displayedReleases.length === 0) {
-    let msg = document.createElement("div");
-    msg.style.color = "#ccc";
-    msg.style.position = "absolute";
-    msg.style.top = "50%";
-    msg.style.left = "50%";
-    msg.style.transform = "translate(-50%, -50%)";
-    msg.textContent = "No records found. Swipe down to open letter menu.";
-    cardStack.appendChild(msg);
-
-    // We'll add vertical swipe listeners on #card-stack itself 
-    addSwipeHandlersToContainer(cardStack);
-    return;
-  }
-
-  if (currentIndex >= displayedReleases.length) currentIndex = displayedReleases.length - 1;
-  if (currentIndex < 0) currentIndex = 0;
-
-  let item = displayedReleases[currentIndex];
-  let card = createCardElement(item);
-  cardStack.appendChild(card);
-}
-
-function createCardElement(releaseItem) {
-  let info = releaseItem.basic_information;
-  let cardEl = document.createElement("div");
-  cardEl.className = "card";
-
-  let squareDiv = document.createElement("div");
-  squareDiv.className = "square-image";
-  let img = document.createElement("img");
-  img.src = info.cover_image;
-  img.alt = info.title;
-  squareDiv.appendChild(img);
-
-  let footer = document.createElement("div");
-  footer.className = "card-footer";
-
-  let titleEl = document.createElement("div");
-  titleEl.className = "card-title";
-  titleEl.textContent = info.title;
-
-  let artistEl = document.createElement("div");
-  artistEl.className = "card-artist";
-  let artistName = info.artists.map(a => a.name).join(", ");
-  artistEl.textContent = artistName;
-
-  // Format
-  let formatEl = document.createElement("div");
-  formatEl.className = "card-format";
-  let formatText = "";
-  if (info.formats && info.formats.length > 0) {
-    formatText = info.formats.map(f => {
-      if (f.descriptions && f.descriptions.length > 0) {
-        return f.descriptions.join(", ");
-      } else if (f.name) {
-        return f.name;
+function buildListLetterBar() {
+  // Clear the letter bar container.
+  listLetterBar.innerHTML = "";
+  // Define the letters to show – "ALL" and "#" plus A–Z.
+  const letters = ["ALL", "#", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+  
+  letters.forEach(letter => {
+    const btn = document.createElement("button");
+    btn.className = "letter-bar-btn";
+    btn.textContent = letter;
+    btn.addEventListener("click", () => {
+      // Clear any search filter so the full list is displayed.
+      listSearch.value = "";
+      listSearchText = "";
+      // Rebuild the list with the full, unfiltered set.
+      buildListItems(allReleases);
+      
+      // Determine the index of the first item whose artist starts with the chosen letter.
+      let idx;
+      if (letter === "ALL") {
+        idx = 0;
+      } else if (letter === "#") {
+        // For "#", choose the first artist whose first character is not A–Z.
+        idx = allReleases.findIndex(r => {
+          const nm = (r.basic_information.artists[0]?.name || "").toUpperCase();
+          return nm.length === 0 || nm[0] < "A" || nm[0] > "Z";
+        });
       } else {
-        return "";
+        idx = allReleases.findIndex(r => {
+          const nm = (r.basic_information.artists[0]?.name || "").toUpperCase();
+          return nm.charAt(0) === letter;
+        });
       }
-    }).filter(t => t !== "").join(" / ");
-  }
-  formatEl.textContent = formatText;
-
-  let tracklistEl = document.createElement("div");
-  tracklistEl.className = "card-tracklist";
-  fillTracklistIfNeeded(releaseItem, tracklistEl);
-
-  // 30% bigger list view button
-  let listBtn = document.createElement("button");
-  listBtn.textContent = "List View";
-  listBtn.className = "view-toggle-btn";
-  listBtn.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    showListView();
-  });
-
-  footer.appendChild(titleEl);
-  footer.appendChild(artistEl);
-  footer.appendChild(formatEl);
-  footer.appendChild(tracklistEl);
-  footer.appendChild(listBtn);
-
-  cardEl.appendChild(squareDiv);
-  cardEl.appendChild(footer);
-
-  // Tap => info overlay
-  cardEl.addEventListener("click", (ev) => {
-    if (!userIsDragging) {
-      ev.stopPropagation();
-      showInfoOverlay(releaseItem);
-    }
-  }, { passive: false });
-
-  addSwipeHandlers(cardEl);
-  return cardEl;
-}
-
-/***********************
- * FILL TRACKLIST
- ***********************/
-async function fillTracklistIfNeeded(releaseItem, trackContainer) {
-  let rid = releaseItem.basic_information.id;
-  if (detailsCache[rid]) {
-    fillTracklistSection(trackContainer, detailsCache[rid]);
-  } else {
-    let url = "https://api.discogs.com/releases/" + rid;
-    try {
-      let resp = await fetch(url, {
-        headers: {
-          "User-Agent": "CardListNoSearchApp/1.0",
-          "Authorization": "Discogs token=" + DISCOGS_TOKEN
-        }
-      });
-      if (!resp.ok) throw new Error("Tracklist fetch error " + resp.status);
-      let data = await resp.json();
-      detailsCache[rid] = data;
-      fillTracklistSection(trackContainer, data);
-    } catch (err) {
-      console.error("Tracklist fetch error:", err);
-      trackContainer.innerHTML = "<p style='color:#bbb;'>Tracklist unavailable.</p>";
-    }
-  }
-}
-function fillTracklistSection(trackContainer, releaseData) {
-  trackContainer.innerHTML = "";
-  if (releaseData.tracklist && releaseData.tracklist.length > 0) {
-    releaseData.tracklist.forEach(t => {
-      let line = document.createElement("div");
-      line.className = "track-item";
-      let txt = t.position + " - " + t.title;
-      if (t.duration) txt += " (" + t.duration + ")";
-      line.textContent = txt;
-      trackContainer.appendChild(line);
+      // If an index is found, delay briefly to ensure the list is rendered, then center that item.
+      if (idx >= 0) {
+        setTimeout(() => {
+          centerListItemByDOM(idx);
+        }, 100);
+      }
     });
+    listLetterBar.appendChild(btn);
+  });
+}
+
+// This new function uses the actual DOM position of the target list item
+// to scroll it so that its center aligns with the middle of the list content.
+function centerListItemByDOM(index) {
+  const items = listContent.children;
+  if (index < 0 || index >= items.length) return;
+  const targetEl = items[index];
+  // Calculate the center of the target element relative to its container.
+  const targetCenter = targetEl.offsetTop + targetEl.offsetHeight / 2;
+  const containerCenter = listContent.clientHeight / 2;
+  listContent.scrollTop = targetCenter - containerCenter;
+}
+
+
+/***********************
+ * LIST SEARCH
+ ***********************/
+function onListSearch(){
+  listSearchText= listSearch.value.trim().toLowerCase();
+  if(!listSearchText){
+    buildListItems(allReleases);
   } else {
-    trackContainer.innerHTML = "<p style='color:#bbb;'>No tracklist found.</p>";
+    let filtered= allReleases.filter(r=>{
+      let info= r.basic_information;
+      let art= info.artists.map(a=>a.name).join(", ").toLowerCase();
+      let alb= info.title.toLowerCase();
+
+      let fm="";
+      if(info.formats && info.formats.length>0){
+        fm= info.formats.map(f=>{
+          if(f.descriptions && f.descriptions.length>0){
+            return f.descriptions.join(", ");
+          } else if(f.name) return f.name;
+          else return "";
+        }).filter(x=>x).join(" / ");
+      }
+      fm= fm.toLowerCase();
+
+      let gStr="";
+      if(info.genres) gStr+= info.genres.join(" ");
+      if(info.styles) gStr+= " "+ info.styles.join(" ");
+      gStr=gStr.toLowerCase();
+
+      return(
+        art.includes(listSearchText)||
+        alb.includes(listSearchText)||
+        fm.includes(listSearchText)||
+        gStr.includes(listSearchText)
+      );
+    });
+    buildListItems(filtered);
   }
 }
 
 /***********************
- * LIST VIEW
+ * BUILD LIST
  ***********************/
-function showListView() {
-  currentView = "list";
-  cardStack.style.display = "none";
-  listView.style.display = "block";
-  buildListView();
-}
-function hideListView() {
-  listView.style.display = "none";
-}
-
-function buildListView() {
-  listView.innerHTML = "";
-  if (displayedReleases.length === 0) {
-    let msg = document.createElement("div");
-    msg.style.color = "#ccc";
-    msg.style.position = "absolute";
-    msg.style.top = "50%";
-    msg.style.left = "50%";
-    msg.style.transform = "translate(-50%, -50%)";
-    msg.textContent = "No records found. Swipe down to open letter menu.";
-    listView.appendChild(msg);
-
-    // also add vertical swipe so we can open letter overlay from an empty list
-    addSwipeHandlersToContainer(listView);
+function buildListItems(arr){
+  listContent.innerHTML="";
+  if(arr.length===0){
+    let msg= document.createElement("div");
+    msg.style.color="#ccc";
+    msg.style.position="absolute";
+    msg.style.top="50%";
+    msg.style.left="50%";
+    msg.style.transform="translate(-50%,-50%)";
+    msg.textContent="No records found. Try a different search or letter.";
+    listContent.appendChild(msg);
     return;
   }
-  displayedReleases.forEach((release, i) => {
-    let row = createListItem(release, i);
-    listView.appendChild(row);
+  arr.forEach((rItem,i)=>{
+    let row= createListRow(rItem,i);
+    listContent.appendChild(row);
   });
 }
-function createListItem(releaseItem, index) {
-  let info = releaseItem.basic_information;
+function createListRow(rItem, idx){
+  let info= rItem.basic_information;
+  let row= document.createElement("div");
+  row.className="list-item";
 
-  let row = document.createElement("div");
-  row.className = "list-item";
+  let thumb= document.createElement("div");
+  thumb.className="list-thumb";
+  let im= document.createElement("img");
+  im.src= info.cover_image;
+  im.alt= info.title;
+  thumb.appendChild(im);
 
-  let thumbDiv = document.createElement("div");
-  thumbDiv.className = "list-thumb";
-  let img = document.createElement("img");
-  img.src = info.cover_image;
-  img.alt = info.title;
-  thumbDiv.appendChild(img);
+  let textDiv= document.createElement("div");
+  textDiv.className="list-info";
 
-  let textDiv = document.createElement("div");
-  textDiv.className = "list-info";
+  let artistName= info.artists.map(a=>a.name).join(", ");
+  let artistDiv= document.createElement("div");
+  artistDiv.className="list-artist";
+  artistDiv.textContent= artistName;
 
-  let artistName = info.artists.map(a => a.name).join(", ");
-  let artistDiv = document.createElement("div");
-  artistDiv.className = "list-artist";
-  artistDiv.textContent = artistName;
-
-  let albumFmtDiv = document.createElement("div");
-  albumFmtDiv.className = "list-album-format";
-  let formatText = "";
-  if (info.formats && info.formats.length > 0) {
-    formatText = info.formats.map(f => {
-      if (f.descriptions && f.descriptions.length > 0) {
+  let albumFmtDiv= document.createElement("div");
+  albumFmtDiv.className="list-album-format";
+  let fm="";
+  if(info.formats && info.formats.length>0){
+    fm= info.formats.map(f=>{
+      if(f.descriptions && f.descriptions.length>0){
         return f.descriptions.join(", ");
-      } else if (f.name) {
-        return f.name;
-      } else {
-        return "";
-      }
-    }).filter(txt => txt !== "").join(" / ");
+      } else if(f.name) return f.name;
+      else return "";
+    }).filter(x=>x).join(" / ");
   }
-  albumFmtDiv.textContent = info.title + " — " + formatText;
+  albumFmtDiv.textContent= info.title+" — "+ fm;
 
   textDiv.appendChild(artistDiv);
   textDiv.appendChild(albumFmtDiv);
 
-  row.appendChild(thumbDiv);
+  row.appendChild(thumb);
   row.appendChild(textDiv);
 
-  // Clicking => go to that item in card view
-  row.addEventListener("click", () => {
-    currentIndex = index;
+  row.addEventListener("click",()=>{
+    let absoluteIndex= allReleases.indexOf(rItem);
+    if(absoluteIndex<0) absoluteIndex=0;
+    displayedReleases= allReleases.slice();
+    currentIndex= absoluteIndex;
     renderCards();
   });
   return row;
 }
 
 /***********************
- * SWIPE LOGIC FOR THE CARD
+ * SWITCHING VIEWS
  ***********************/
-let userIsDragging = false;
-let startX = 0, startY = 0;
-let currentTranslateX = 0, currentTranslateY = 0;
-const HORIZONTAL_THRESHOLD = 80;
-const VERTICAL_THRESHOLD = 80;
-
-/* We'll attach these to the actual .card 
-   If no card => we attach a minimal vertical-swipe to container. */
-function addSwipeHandlers(cardEl) {
-  cardEl.addEventListener("touchstart", onTouchStart, { passive: false });
-  cardEl.addEventListener("touchmove", onTouchMove, { passive: false });
-  cardEl.addEventListener("touchend", onTouchEnd, { passive: false });
-
-  function onTouchStart(e) {
-    if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
-    let touch = e.changedTouches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    userIsDragging = false;
-    currentTranslateX = 0;
-    currentTranslateY = 0;
-    cardEl.style.transition = "none";
+function showListView(){
+  currentView="list";
+  cardStack.style.display="none";
+  listView.style.display="block";
+  if(listSearchText){
+    onListSearch();
+  } else {
+    buildListItems(allReleases);
   }
+}
+function hideListView(){
+  listView.style.display="none";
+}
 
-  function onTouchMove(e) {
-    if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
-    let touch = e.changedTouches[0];
-    let diffX = touch.clientX - startX;
-    let diffY = touch.clientY - startY;
-    let absX = Math.abs(diffX);
-    let absY = Math.abs(diffY);
+/***********************
+ * RENDER CARDS
+ ***********************/
+function renderCards(){
+  currentView="card";
+  hideListView();
+  cardStack.style.display="block";
+  cardStack.innerHTML="";
 
-    if (absX > 10 || absY > 10) userIsDragging = true;
+  if(displayedReleases.length===0){
+    let msg= document.createElement("div");
+    msg.style.color="#ccc";
+    msg.style.position="absolute";
+    msg.style.top="50%";
+    msg.style.left="50%";
+    msg.style.transform="translate(-50%,-50%)";
+    msg.textContent="No records found. Swipe down to open letter menu.";
+    cardStack.appendChild(msg);
+    return;
+  }
+  if(currentIndex>= displayedReleases.length) currentIndex= displayedReleases.length-1;
+  if(currentIndex<0) currentIndex=0;
 
-    if (absY > absX) {
-      // vertical => letter overlay
-      currentTranslateY = diffY;
-      cardEl.style.transform = `translateY(${diffY * 0.1}px)`;
+  let item= displayedReleases[currentIndex];
+  let card= createCardElement(item);
+  cardStack.appendChild(card);
+}
+
+/***********************
+ * CREATE A SINGLE CARD
+ ***********************/
+let userIsDragging=false; /* define up here for clarity */
+function createCardElement(rItem){
+  let info= rItem.basic_information;
+  let c= document.createElement("div");
+  c.className="card";
+
+  let sq= document.createElement("div");
+  sq.className="square-image";
+  let im= document.createElement("img");
+  im.src= info.cover_image;
+  im.alt= info.title;
+  sq.appendChild(im);
+
+  let foot= document.createElement("div");
+  foot.className="card-footer";
+
+  let titleEl= document.createElement("div");
+  titleEl.className="card-title";
+  titleEl.textContent= info.title;
+
+  let artEl= document.createElement("div");
+  artEl.className="card-artist";
+  let artistStr= info.artists.map(a=>a.name).join(", ");
+  artEl.textContent= artistStr;
+
+  let formatEl= document.createElement("div");
+  formatEl.className="card-format";
+  let fm="";
+  if(info.formats && info.formats.length>0){
+    fm= info.formats.map(f=>{
+      if(f.descriptions && f.descriptions.length>0){
+        return f.descriptions.join(", ");
+      } else if(f.name) return f.name;
+      else return "";
+    }).filter(x=>x).join(" / ");
+  }
+  formatEl.textContent= fm;
+
+  let trackDiv= document.createElement("div");
+  trackDiv.className="card-tracklist";
+  fillTracklistIfNeeded(rItem, trackDiv);
+
+  let lvBtn= document.createElement("button");
+  lvBtn.className="view-toggle-btn";
+  lvBtn.textContent="List View";
+  lvBtn.addEventListener("click",(ev)=>{
+    ev.stopPropagation();
+    showListView();
+  });
+
+  foot.appendChild(titleEl);
+  foot.appendChild(artEl);
+  foot.appendChild(formatEl);
+  foot.appendChild(trackDiv);
+  foot.appendChild(lvBtn);
+
+  c.appendChild(sq);
+  c.appendChild(foot);
+
+  c.addEventListener("click",(ev)=>{
+    if(!userIsDragging){
+      ev.stopPropagation();
+      showInfoOverlay(rItem);
+    }
+  }, {passive:false});
+
+  addSwipeHandlers(c);
+  return c;
+}
+
+/***********************
+ * FILL TRACKLIST
+ ***********************/
+async function fillTracklistIfNeeded(rItem, container){
+  let rid= rItem.basic_information.id;
+  if(detailsCache[rid]){
+    fillTracklistSection(container, detailsCache[rid]);
+  } else {
+    let url= "https://api.discogs.com/releases/"+rid;
+    try{
+      let resp= await fetch(url,{
+        headers:{
+          "User-Agent":"DiscogsHalfScalePartialAdjust/1.0",
+          "Authorization":"Discogs token="+ DISCOGS_TOKEN
+        }
+      });
+      if(!resp.ok) throw new Error("Tracklist fetch error "+resp.status);
+      let data= await resp.json();
+      detailsCache[rid]= data;
+      fillTracklistSection(container, data);
+    } catch(err){
+      console.error("Tracklist fetch err:", err);
+      container.innerHTML="<p style='color:#bbb;'>Tracklist unavailable.</p>";
+    }
+  }
+}
+
+function fillTracklistSection(container, releaseData) {
+  container.innerHTML = "";
+  if (releaseData.tracklist && releaseData.tracklist.length > 0) {
+    releaseData.tracklist.forEach(t => {
+      let div = document.createElement("div");
+      div.className = "track-item";
+      
+      // Build the display text using the track position and scrubbed title.
+      let txt = t.position + " - " + scrubTrackTitle(t.title);
+      
+      div.textContent = txt;
+      container.appendChild(div);
+    });
+  } else {
+    container.innerHTML = "<p style='color:#bbb;'>No tracklist found.</p>";
+  }
+}
+
+/***********************
+ * SWIPE LOGIC (CARD)
+ ***********************/
+let startX=0, startY=0;
+let currentTranslateX=0, currentTranslateY=0;
+
+function addSwipeHandlers(el){
+  el.addEventListener("touchstart", onTouchStart,{passive:false});
+  el.addEventListener("touchmove", onTouchMove,{passive:false});
+  el.addEventListener("touchend", onTouchEnd,{passive:false});
+
+  function onTouchStart(e){
+    if(infoOverlay.classList.contains("visible")|| letterOverlay.classList.contains("visible")) return;
+    let t=e.changedTouches[0];
+    startX= t.clientX;
+    startY= t.clientY;
+    userIsDragging=false;
+    currentTranslateX=0; 
+    currentTranslateY=0;
+    el.style.transition="none";
+  }
+  function onTouchMove(e){
+    if(infoOverlay.classList.contains("visible")|| letterOverlay.classList.contains("visible")) return;
+    let t=e.changedTouches[0];
+    let diffX= t.clientX - startX;
+    let diffY= t.clientY - startY;
+    let absX= Math.abs(diffX);
+    let absY= Math.abs(diffY);
+
+    if(absX>10|| absY>10) userIsDragging=true;
+
+    if(absY>absX){
+      currentTranslateY= diffY;
+      el.style.transform=`translateY(${diffY*0.1}px)`;
       e.preventDefault();
     } else {
-      // horizontal => fade
-      currentTranslateX = diffX;
-      let ratio = Math.min(absX / HORIZONTAL_THRESHOLD, 1);
-      let newOpacity = 1 - 0.2 * ratio;
-      cardEl.style.opacity = newOpacity;
-      cardEl.style.transform = `translateX(${diffX}px)`;
+      currentTranslateX= diffX;
+      let ratio= Math.min(absX/HORIZONTAL_THRESHOLD,1);
+      let newOpacity= 1- (0.2* ratio);
+      el.style.opacity= newOpacity;
+      el.style.transform=`translateX(${diffX}px)`;
       e.preventDefault();
     }
   }
-
-  function onTouchEnd(e) {
-    if (!userIsDragging) {
-      // just a tap
-      resetCardStyle(cardEl);
+  function onTouchEnd(e){
+    if(!userIsDragging){
+      resetCardStyle(el);
       return;
     }
-    let absX = Math.abs(currentTranslateX);
-    let absY = Math.abs(currentTranslateY);
+    let absX= Math.abs(currentTranslateX);
+    let absY= Math.abs(currentTranslateY);
 
-    if (absY > absX) {
-      if (currentTranslateY > VERTICAL_THRESHOLD) {
+    if(absY> absX){
+      if(currentTranslateY> VERTICAL_THRESHOLD){
         showLetterOverlay();
-      } else if (currentTranslateY < -VERTICAL_THRESHOLD) {
-        if (letterOverlay.classList.contains("visible")) hideLetterOverlay();
-        else resetCardStyle(cardEl);
+      } else if(currentTranslateY< -VERTICAL_THRESHOLD){
+        if(letterOverlay.classList.contains("visible")){
+          hideLetterOverlay();
+        } else {
+          resetCardStyle(el);
+        }
       } else {
-        resetCardStyle(cardEl);
+        resetCardStyle(el);
       }
     } else {
-      // horizontal
-      if (absX > HORIZONTAL_THRESHOLD) {
-        if (currentTranslateX < 0) swipeCardOff(cardEl, -1); // left => next
-        else swipeCardOff(cardEl, 1); // right => prev
+      if(absX>HORIZONTAL_THRESHOLD){
+        if(currentTranslateX<0) currentIndex++;
+        else currentIndex--;
+        swipeCardOff(el, (currentTranslateX<0? -1:1));
       } else {
-        resetCardStyle(cardEl);
+        resetCardStyle(el);
       }
     }
   }
-
-  function swipeCardOff(el, direction) {
-    el.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
-    let endX = direction * (screenWidth * 1.5);
-    el.style.transform = `translateX(${endX}px)`;
-    el.style.opacity = "0";
-    setTimeout(() => {
-      if (el.parentNode) el.parentNode.removeChild(el);
-      if (direction < 0) currentIndex++; 
-      else currentIndex--;
+  function swipeCardOff(elem, dir){
+    elem.style.transition="transform 0.5s ease-out, opacity 0.5s ease-out";
+    let endX= dir*(window.innerWidth*1.5);
+    elem.style.transform=`translateX(${endX}px)`;
+    elem.style.opacity="0";
+    setTimeout(()=>{
+      if(elem.parentNode) elem.parentNode.removeChild(elem);
       renderCards();
-    }, 500);
+    },500);
   }
-
-  function resetCardStyle(el) {
-    el.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
-    el.style.transform = "translateX(0) translateY(0)";
-    el.style.opacity = "1";
-  }
-}
-
-/***********************
- * SWIPE LOGIC FOR A CONTAINER WITH NO CARDS
- ***********************/
-function addSwipeHandlersToContainer(containerEl) {
-  // Only vertical swipe => letter overlay
-  containerEl.addEventListener("touchstart", onContTouchStart, { passive: false });
-  containerEl.addEventListener("touchmove", onContTouchMove, { passive: false });
-  containerEl.addEventListener("touchend", onContTouchEnd, { passive: false });
-
-  let cStartY=0, cDiffY=0, cIsDragging=false;
-
-  function onContTouchStart(e) {
-    if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
-    let t = e.changedTouches[0];
-    cStartY = t.clientY;
-    cDiffY = 0;
-    cIsDragging = false;
-  }
-  function onContTouchMove(e) {
-    if (infoOverlay.classList.contains("visible") || letterOverlay.classList.contains("visible")) return;
-    let t = e.changedTouches[0];
-    cDiffY = t.clientY - cStartY;
-    if (Math.abs(cDiffY) > 10) cIsDragging = true;
-    e.preventDefault();
-  }
-  function onContTouchEnd(e) {
-    if (!cIsDragging) return; // it was just a tap
-    if (cDiffY > VERTICAL_THRESHOLD) {
-      showLetterOverlay();
-    } else if (cDiffY < -VERTICAL_THRESHOLD) {
-      if (letterOverlay.classList.contains("visible")) hideLetterOverlay();
-    }
+  function resetCardStyle(elem){
+    elem.style.transition="transform 0.2s ease-out, opacity 0.2s ease-out";
+    elem.style.transform="translateX(0) translateY(0)";
+    elem.style.opacity="1";
   }
 }
 
 /***********************
- * LETTER OVERLAY SWIPE UP
- ***********************/
-function showLetterOverlay() {
-  letterOverlay.classList.add("visible");
-}
-function hideLetterOverlay() {
-  letterOverlay.classList.remove("visible");
-  setTimeout(() => {
-    if (!letterOverlay.classList.contains("visible")) {
-      letterOverlay.style.display = "none";
-      letterOverlay.offsetHeight; // reflow
-      letterOverlay.style.display = "";
-    }
-  }, 300);
-}
-
-/***********************
- * INFO OVERLAY (Tap to Close)
+ * INFO OVERLAY
  ***********************/
 infoOverlay.addEventListener("click", closeInfoOverlay);
 
-function showInfoOverlay(releaseItem) {
-  let rid = releaseItem.basic_information.id;
-  if (detailsCache[rid]) {
-    fillInfoOverlay(releaseItem, detailsCache[rid]);
+function showInfoOverlay(rItem){
+  let rid= rItem.basic_information.id;
+  if(detailsCache[rid]){
+    fillInfoOverlay(rItem, detailsCache[rid]);
     openInfoOverlay();
   } else {
-    let url = "https://api.discogs.com/releases/" + rid;
-    fetch(url, {
-      headers: {
-        "User-Agent": "CardListNoSearchApp/1.0",
-        "Authorization": "Discogs token=" + DISCOGS_TOKEN
+    let url= "https://api.discogs.com/releases/"+ rid;
+    fetch(url,{
+      headers:{
+        "User-Agent":"DiscogsHalfScalePartialAdjust/1.0",
+        "Authorization":"Discogs token="+ DISCOGS_TOKEN
       }
     })
-    .then(resp => {
-      if (!resp.ok) throw new Error("Overlay fetch error " + resp.status);
+    .then(resp=>{
+      if(!resp.ok) throw new Error("Overlay fetch error "+ resp.status);
       return resp.json();
     })
-    .then(data => {
-      detailsCache[rid] = data;
-      fillInfoOverlay(releaseItem, data);
+    .then(data=>{
+      detailsCache[rid]= data;
+      fillInfoOverlay(rItem, data);
       openInfoOverlay();
     })
-    .catch(err => {
+    .catch(err=>{
       console.error("Overlay fetch err:", err);
-      infoContent.innerHTML = "<p>Error loading details</p>";
+      infoContent.innerHTML="<p>Error loading details</p>";
       openInfoOverlay();
     });
   }
 }
-function fillInfoOverlay(releaseItem, releaseData) {
-  infoContent.innerHTML = "";
-  let titleEl = document.createElement("h2");
-  titleEl.textContent = releaseItem.basic_information.title;
-  infoContent.appendChild(titleEl);
+function fillInfoOverlay(rItem, releaseData){
+  infoContent.innerHTML="";
 
-  let artistStr = releaseItem.basic_information.artists.map(a => a.name).join(", ");
-  let artistEl = document.createElement("h3");
-  artistEl.textContent = artistStr;
-  artistEl.style.color = "#ccc";
-  infoContent.appendChild(artistEl);
+  let h2= document.createElement("h2");
+  h2.textContent= rItem.basic_information.title;
+  infoContent.appendChild(h2);
 
-  if (releaseData.labels) {
-    let labelStr = releaseData.labels.map(l => l.name).join(", ");
-    if (labelStr) addInfoRow("Label:", labelStr);
+  let artStr= rItem.basic_information.artists.map(a=>a.name).join(", ");
+  let h3= document.createElement("h3");
+  h3.textContent= artStr;
+  h3.style.color="#ccc";
+  infoContent.appendChild(h3);
+
+  // --- Create the Spotify Player Container ---
+  const spotifyContainer = document.createElement("div");
+  // Style the container to be nearly full-width and centered.
+  spotifyContainer.style.width = "90%";
+  spotifyContainer.style.margin = "0 auto 20px";  // 20px bottom margin for spacing
+  spotifyContainer.style.textAlign = "center";
+  
+  // Add the container at the very top of the info overlay.
+  infoContent.appendChild(spotifyContainer);
+  
+  // Use the scrubbed artist name and album title.
+  // (Since you already scrub the artist names after fetching, this uses the cleaned-up name.)
+  const albumTitle = rItem.basic_information.title;
+  const artistName = rItem.basic_information.artists[0]?.name || "";
+  
+  // Embed the Spotify player in the container.
+  embedSpotifyPlayerInContainer(spotifyContainer, artistName, albumTitle);
+
+  if(releaseData.labels){
+    let labelStr= releaseData.labels.map(l=>l.name).join(", ");
+    if(labelStr) addInfoRow("Label:", labelStr);
   }
-  if (releaseData.year) addInfoRow("Year:", String(releaseData.year));
-  if (releaseData.country) addInfoRow("Country:", releaseData.country);
-  if (releaseData.genres) addInfoRow("Genre(s):", releaseData.genres.join(", "));
-  if (releaseData.styles) addInfoRow("Style(s):", releaseData.styles.join(", "));
-  if (releaseData.notes) addInfoRow("Notes:", releaseData.notes);
+
+  if(releaseData.year) addInfoRow("Year:", String(releaseData.year));
+  if(releaseData.country) addInfoRow("Country:", releaseData.country);
+  if(releaseData.genres) addInfoRow("Genre(s):", releaseData.genres.join(", "));
+  if(releaseData.styles) addInfoRow("Style(s):", releaseData.styles.join(", "));
+  if(releaseData.notes) addInfoRow("Notes:", releaseData.notes);
 }
-function addInfoRow(label, value) {
-  let lbl = document.createElement("div");
-  lbl.className = "extra-label";
-  lbl.textContent = label;
-
-  let val = document.createElement("div");
-  val.className = "extra-value";
-  val.textContent = value;
-
+function addInfoRow(label, val){
+  let lbl= document.createElement("div");
+  lbl.className="extra-label";
+  lbl.textContent= label;
+  let v= document.createElement("div");
+  v.className="extra-value";
+  v.textContent= val;
   infoContent.appendChild(lbl);
-  infoContent.appendChild(val);
+  infoContent.appendChild(v);
 }
-function openInfoOverlay() {
+function openInfoOverlay(){
   infoOverlay.classList.add("visible");
+  infoOverlay.style.display = "block";
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  // Prevent interaction with the card underneath
+  cardStack.style.pointerEvents = "none";
 }
-function closeInfoOverlay() {
+
+function closeInfoOverlay(){
+  // Find and remove the Spotify iframe if it exists.
+  const spotifyIframe = infoContent.querySelector("iframe");
+  if (spotifyIframe) {
+    spotifyIframe.parentNode.removeChild(spotifyIframe);
+  }
   infoOverlay.classList.remove("visible");
-  setTimeout(() => {
-    if (!infoOverlay.classList.contains("visible")) {
+  setTimeout(()=>{
+    if(!infoOverlay.classList.contains("visible")){
       infoOverlay.style.display = "none";
-      infoOverlay.offsetHeight;
-      infoOverlay.style.display = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      // Re-enable card interactions
+      cardStack.style.pointerEvents = "auto";
     }
   }, 300);
 }
-
-/***********************
- * INIT
- ***********************/
-(async function init() {
-  try {
-    let data = await fetchEntireCollection();
-    data = sortByArtistName(data);
-    allReleases = data;
-    displayedReleases = allReleases.slice();
-
-    buildLetterOverlay();
-    renderCards(); // Show card view first
-  } catch (err) {
-    console.error("Init error:", err);
-    let msg = document.createElement("div");
-    msg.style.color = "#ccc";
-    msg.style.position = "absolute";
-    msg.style.top = "50%";
-    msg.style.left = "50%";
-    msg.style.transform = "translate(-50%, -50%)";
-    msg.textContent = "Error loading. Check console.";
-    cardStack.appendChild(msg);
-  }
-})();
 </script>
 </body>
 </html>
